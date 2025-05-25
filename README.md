@@ -10,7 +10,7 @@ The **Class Schedule Organizer** is a simple, user-friendly Python program desig
 1. Ensure **Python 3** is installed (**Python 3.12+ recommended**).
 2. Download or clone the project repository:
    ```bash
-   git clone https://github.com/yourusername/Class-schedule-organizer.git
+   https://github.com/Kuni-G/Class-schedule-organizer.git
 3. Open a terminal and navigate to the project folder:
    ```bash
    cd Class-schedule-organizer
