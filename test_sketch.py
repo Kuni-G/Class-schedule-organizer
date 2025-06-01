@@ -4,7 +4,6 @@ def display_menu():
     print("1. Add a Class")
     print("2. View Schedule")
     print("3. Exit")
-
 def add_class():
     subject = input("Enter subject name: ")
     day = input("Enter day (e.g., Monday): ")
