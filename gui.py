@@ -1,5 +1,3 @@
-# class_reminder_clean.py
-
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 from datetime import datetime, timedelta
@@ -8,63 +6,54 @@ import os
 import threading
 import time
 
-
+# ────────────── Main Application Class ────────────── #
 class ClassReminder:
     def __init__(self, root):
         self.root = root
-        self.root.title("Class Reminder")
-        self.root.geometry("900x600")
+        self.root.title("Class Schedule Organizer")
+        self.root.geometry("1000x650")
         self.root.configure(bg="#f0f8ff")
 
-        # File to store schedule data
         self.schedule_file = "class_schedule.json"
-
-        # Load existing schedule or empty list
         self.schedule = self.load_schedule()
 
-        # Used for reminders
         self.running = True
         self.reminder_thread = None
 
-        # Build GUI and start reminder check
         self.create_widgets()
         self.start_reminder_monitor()
-
-        # Handle window closing properly
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     # ────────────── GUI SETUP ────────────── #
-
     def create_widgets(self):
-        # Title
-        header = tk.Label(self.root, text="CLASS REMINDER", font=("Arial", 24, "bold"), bg="#4b86b4", fg="white")
+        # Header
+        header = tk.Label(self.root, text="CLASS SCHEDULE ORGANIZER", font=("Arial", 24, "bold"), bg="#4b86b4", fg="white")
         header.pack(fill=tk.X, pady=10)
 
-        # Toolbar with buttons
+        # Toolbar Buttons
         toolbar = tk.Frame(self.root, bg="#f0f8ff")
         toolbar.pack(fill=tk.X, padx=10, pady=5)
-
-        button_style = {"font": ("Arial", 10), "bg": "#63a8d4", "fg": "white", "width": 12}
+        button_style = {"font": ("Arial", 10), "bg": "#63a8d4", "fg": "white", "width": 14}
 
         tk.Button(toolbar, text="Add Class", command=self.add_class, **button_style).pack(side=tk.LEFT, padx=5)
-        tk.Button(toolbar, text="Edit Class", command=self.edit_class, **button_style).pack(side=tk.LEFT, padx=5)
-        tk.Button(toolbar, text="Delete Class", command=self.delete_class, **button_style).pack(side=tk.LEFT, padx=5)
+        tk.Button(toolbar, text="Edit Entry", command=self.edit_class, **button_style).pack(side=tk.LEFT, padx=5)
+        tk.Button(toolbar, text="Delete Entry", command=self.delete_class, **button_style).pack(side=tk.LEFT, padx=5)
         tk.Button(toolbar, text="Set Reminder", command=self.set_reminder, **button_style).pack(side=tk.LEFT, padx=5)
+        tk.Button(toolbar, text="Add Assignment", command=self.add_assignment, **button_style).pack(side=tk.LEFT, padx=5)
+        tk.Button(toolbar, text="Add Exam", command=self.add_exam, **button_style).pack(side=tk.LEFT, padx=5)
 
-
-        # Schedule table
-        schedule_frame = tk.LabelFrame(self.root, text="Class Schedule", bg="#f0f8ff", font=("Arial", 12))
+        # Schedule Table
+        schedule_frame = tk.LabelFrame(self.root, text="Schedule", bg="#f0f8ff", font=("Arial", 12))
         schedule_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        columns = ("Time", "Class", "Location", "Reminder")
+        columns = ("Day", "Time", "Class", "Location", "Type", "Reminder")
         self.tree = ttk.Treeview(schedule_frame, columns=columns, show="headings")
         for col in columns:
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor="w")
-
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-        # Status bar
+        # Status Bar
         self.status = tk.StringVar()
         status_bar = tk.Label(self.root, textvariable=self.status, anchor="w", bg="#e0e0e0")
         status_bar.pack(fill=tk.X, side=tk.BOTTOM)
@@ -72,8 +61,7 @@ class ClassReminder:
         self.update_schedule_table()
         self.update_status()
 
-    # ────────────── DATA FUNCTIONS ────────────── #
-
+    # ────────────── Data Handling ────────────── #
     def load_schedule(self):
         if os.path.exists(self.schedule_file):
             with open(self.schedule_file, "r") as f:
@@ -84,113 +72,114 @@ class ClassReminder:
         with open(self.schedule_file, "w") as f:
             json.dump(self.schedule, f, indent=2)
 
-    # ────────────── SCHEDULE DISPLAY ────────────── #
-
     def update_schedule_table(self):
         self.tree.delete(*self.tree.get_children())
         for entry in sorted(self.schedule, key=lambda x: x["time"]):
-            self.tree.insert("", tk.END, values=(entry["time"], entry["class"], entry["location"], entry.get("reminder", "No reminder")))
+            self.tree.insert("", tk.END, values=(entry["day"], entry["time"], entry["class"], entry["location"], entry["type"], entry.get("reminder", "No reminder")))
 
     def update_status(self):
         today = datetime.now().strftime("%A, %B %d")
         count = len(self.schedule)
-        self.status.set(f"Today is {today} | {count} classes scheduled")
+        self.status.set(f"Today is {today} | {count} entries scheduled")
         self.root.after(60000, self.update_status)
 
-    # ────────────── ADD / EDIT / DELETE ────────────── #
-
+    # ────────────── Add / Edit / Delete Entries ────────────── #
     def add_class(self):
-        self.class_form("Add Class")
+        self.class_form("Add Class", entry_type="class")
+
+    def add_assignment(self):
+        self.class_form("Add Assignment", entry_type="assignment")
+
+    def add_exam(self):
+        self.class_form("Add Exam", entry_type="exam")
 
     def edit_class(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("No Selection", "Select a class to edit.")
+            messagebox.showwarning("No Selection", "Select an entry to edit.")
             return
         values = self.tree.item(selected[0])["values"]
-        self.class_form("Edit Class", values)
+        self.class_form("Edit Entry", values=values, entry_type=values[4])
 
     def delete_class(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("No Selection", "Select a class to delete.")
+            messagebox.showwarning("No Selection", "Select an entry to delete.")
             return
         values = self.tree.item(selected[0])["values"]
         self.schedule = [entry for entry in self.schedule if not (
-            entry["time"] == values[0] and entry["class"] == values[1] and entry["location"] == values[2])]
+            entry["day"] == values[0] and entry["time"] == values[1] and entry["class"] == values[2])]
         self.save_schedule()
         self.update_schedule_table()
         self.update_status()
-        messagebox.showinfo("Deleted", "Class deleted.")
+        messagebox.showinfo("Deleted", "Entry deleted.")
 
-    def class_form(self, title, values=None):
+    def class_form(self, title, values=None, entry_type="class"):
         win = tk.Toplevel(self.root)
         win.title(title)
-        win.geometry("350x250")
+        win.geometry("400x350")
         win.grab_set()
 
-        labels = ["Class Name", "Time (HH:MM)", "Location", "Reminder (min)"]
+        labels = ["Day", "Time (HH:MM)", "Class Name", "Location", "Reminder (min)"]
         entries = []
 
         for i, label in enumerate(labels):
             tk.Label(win, text=label).grid(row=i, column=0, padx=10, pady=5, sticky="e")
-            entry = tk.Entry(win, width=25)
+            entry = tk.Entry(win, width=30)
             entry.grid(row=i, column=1, padx=10, pady=5)
             entries.append(entry)
 
-        # Prefill values if editing
         if values:
-            for i in range(3):
+            for i in range(5):
                 entries[i].insert(0, values[i])
-            if "min" in values[3]:
-                entries[3].insert(0, values[3].split()[0])
 
         def save():
             try:
-                class_name = entries[0].get()
+                day = entries[0].get()
                 time_str = entries[1].get()
-                location = entries[2].get()
-                reminder = entries[3].get()
-                datetime.strptime(time_str, "%H:%M")  # validate time
+                class_name = entries[2].get()
+                location = entries[3].get()
+                reminder = entries[4].get()
+                datetime.strptime(time_str, "%H:%M")
             except:
-                messagebox.showerror("Error", "Invalid input. Use HH:MM for time.")
+                messagebox.showerror("Error", "Invalid input. Ensure time is HH:MM.")
                 return
 
             new_entry = {
                 "class": class_name,
+                "day": day,
                 "time": time_str,
                 "location": location,
+                "type": entry_type,
                 "reminder": f"{reminder} min before" if reminder != "0" else "No reminder"
             }
 
-            if title == "Add Class":
-                self.schedule.append(new_entry)
-            else:
+            if values:
                 for i, entry in enumerate(self.schedule):
-                    if entry["time"] == values[0] and entry["class"] == values[1] and entry["location"] == values[2]:
+                    if entry["day"] == values[0] and entry["time"] == values[1] and entry["class"] == values[2]:
                         self.schedule[i] = new_entry
                         break
+            else:
+                self.schedule.append(new_entry)
 
             self.save_schedule()
             self.update_schedule_table()
             self.update_status()
             win.destroy()
 
-        tk.Button(win, text="Save", command=save, bg="#63a8d4", fg="white").grid(row=5, columnspan=2, pady=10)
+        tk.Button(win, text="Save", command=save, bg="#63a8d4", fg="white").grid(row=6, columnspan=2, pady=10)
 
-    # ────────────── REMINDER FEATURES ────────────── #
-
+    # ────────────── Reminder System ────────────── #
     def set_reminder(self):
         selected = self.tree.selection()
         if not selected:
-            messagebox.showwarning("No Selection", "Select a class first.")
+            messagebox.showwarning("No Selection", "Select an entry first.")
             return
-
         values = self.tree.item(selected[0])["values"]
-        minutes = simpledialog.askinteger("Reminder", f"How many minutes before {values[1]}?", minvalue=1, maxvalue=120)
+        minutes = simpledialog.askinteger("Reminder", f"How many minutes before {values[2]}?", minvalue=1, maxvalue=120)
         if minutes:
             for entry in self.schedule:
-                if entry["time"] == values[0] and entry["class"] == values[1] and entry["location"] == values[2]:
+                if entry["day"] == values[0] and entry["time"] == values[1] and entry["class"] == values[2]:
                     entry["reminder"] = f"{minutes} min before"
                     self.save_schedule()
                     self.update_schedule_table()
@@ -211,7 +200,7 @@ class ClassReminder:
                         class_time = datetime.strptime(entry["time"], "%H:%M")
                         remind_time = datetime.combine(now.date(), class_time.time()) - timedelta(minutes=minutes)
                         if now >= remind_time and entry.get("notified") != now.date().isoformat():
-                            self.root.after(0, self.show_reminder, entry)
+                            self.root.after(0, lambda e=entry: self.show_reminder(e))
                             entry["notified"] = now.date().isoformat()
                             self.save_schedule()
                     except:
@@ -219,8 +208,8 @@ class ClassReminder:
             time.sleep(30)
 
     def show_reminder(self, entry):
-        message = f"Reminder: {entry['class']} starts at {entry['time']}\nLocation: {entry['location']}"
-        messagebox.showinfo("Class Reminder", message)
+        message = f"Reminder: {entry['type'].title()} - {entry['class']} at {entry['time']}\nLocation: {entry['location']}"
+        messagebox.showinfo("Reminder", message)
 
     def on_closing(self):
         self.running = False
@@ -229,7 +218,7 @@ class ClassReminder:
         self.root.destroy()
 
 
-# ────────────── RUN THE APP ────────────── #
+# ────────────── Run the App ────────────── #
 if __name__ == "__main__":
     root = tk.Tk()
     app = ClassReminder(root)
