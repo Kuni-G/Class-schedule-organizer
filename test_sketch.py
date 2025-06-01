@@ -14,8 +14,7 @@ def add_class():
         "subject": subject,
         "day": day,
         "start": start_time,
-        "end": end_time
-    })
+        "end": end_time})
     print("Class added successfully!")
 
 def view_schedule():
