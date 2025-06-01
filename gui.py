@@ -9,7 +9,7 @@ import threading
 import time
 
 
-class ClassReminderApp:
+class ClassReminder:
     def __init__(self, root):
         self.root = root
         self.root.title("Class Reminder")
@@ -232,5 +232,5 @@ class ClassReminderApp:
 # ────────────── RUN THE APP ────────────── #
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ClassReminderApp(root)
+    app = ClassReminder(root)
     root.mainloop()
