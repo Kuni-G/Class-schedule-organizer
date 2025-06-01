@@ -1,5 +1,4 @@
 schedule = []  # List to store class schedules
-
 def display_menu():
     print("\n--- Class Schedule Organizer ---")
     print("1. Add a Class")
