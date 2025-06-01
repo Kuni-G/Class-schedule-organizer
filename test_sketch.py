@@ -15,7 +15,6 @@ def add_class():
         "start": start_time,
         "end": end_time})
     print("Class added successfully!")
-
 def view_schedule():
     if not schedule:
         print("No classes in your schedule yet.")
